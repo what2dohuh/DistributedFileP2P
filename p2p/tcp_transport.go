@@ -6,7 +6,19 @@ import (
 	"fmt"
 )
 
+type TCPPeer struct{
+	conn net.Conn
+	// if we dial outbound = true
+	// if we accept inbound = false
+	outbound bool
+}
 
+func NewTCPPeer(conn net.Conn, outbound bool) *TCPPeer {
+	return &TCPPeer{
+		conn:     conn,
+		outbound: outbound,
+	}
+}
 
 type TCPTransport struct {
 	listenAddr 	string
@@ -33,15 +45,17 @@ func (t *TCPTransport) ListenAndAccept() error {
 }
 
 func (t *TCPTransport) startAcceptLoop(){
-
+	for {
 	conn, err := t.listener.Accept()
 	if err != nil {
 		fmt.Println("Error accepting connection:", err)
 		return
 	}
 	go t.handleConn(conn)
+	}
 }
 
 func (t *TCPTransport) handleConn(conn net.Conn)  {
-	fmt.Println("New connection from:", conn)
+	peer := NewTCPPeer(conn, true)
+	fmt.Printf("New connection from: %+v\n", peer)
 }

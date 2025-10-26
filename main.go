@@ -1,6 +1,15 @@
 package main
-import "fmt"
+import (	
+		"fmt"
+		"github.com/what2dohuh/distributedFile/p2p"
+		)
 
 func main() {
-	fmt.Println("Hello, Distributed File Storage!")
+	tr := p2p.NewTCPTransport(":8080")
+	err := tr.ListenAndAccept()
+	if err != nil {
+		fmt.Println("Error starting TCP Transport:", err)
+		return
+	}
+	select {}
 }
