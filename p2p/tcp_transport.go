@@ -1,12 +1,12 @@
 package p2p
 
 import (
+	"fmt"
 	"net"
 	"sync"
-	"fmt"
 )
 
-type TCPPeer struct{
+type TCPPeer struct {
 	conn net.Conn
 	// if we dial outbound = true
 	// if we accept inbound = false
@@ -20,23 +20,28 @@ func NewTCPPeer(conn net.Conn, outbound bool) *TCPPeer {
 	}
 }
 
+type TCPTransportOpts struct {
+	ListenAddr   string
+	HandshakeFun HandshakeFunction
+	Decoder      Decorder
+}
 type TCPTransport struct {
-	listenAddr 	string
-	listener   	net.Listener
-	mu 	 	   	sync.RWMutex
-	peers    	map[net.Addr]Peer
+	TCPTransportOpts
+	listener net.Listener
+	mu       sync.RWMutex
+	peers    map[net.Addr]Peer
 }
 
-func NewTCPTransport(listenAddr string) *TCPTransport {
+func NewTCPTransport(opts TCPTransportOpts) *TCPTransport {
 	return &TCPTransport{
-		listenAddr: listenAddr,
-		peers:      make(map[net.Addr]Peer),
-	}	
+		TCPTransportOpts: opts,
+		peers:            make(map[net.Addr]Peer),
+	}
 }
 
 func (t *TCPTransport) ListenAndAccept() error {
 	var err error
-	t.listener, err = net.Listen("tcp", t.listenAddr)
+	t.listener, err = net.Listen("tcp", t.ListenAddr)
 	if err != nil {
 		return err
 	}
@@ -44,18 +49,42 @@ func (t *TCPTransport) ListenAndAccept() error {
 	return nil
 }
 
-func (t *TCPTransport) startAcceptLoop(){
+func (t *TCPTransport) startAcceptLoop() {
 	for {
-	conn, err := t.listener.Accept()
-	if err != nil {
-		fmt.Println("Error accepting connection:", err)
-		return
-	}
-	go t.handleConn(conn)
+		conn, err := t.listener.Accept()
+		if err != nil {
+			fmt.Println("Error accepting connection:", err)
+			return
+		}
+		go t.handleConn(conn)
 	}
 }
 
-func (t *TCPTransport) handleConn(conn net.Conn)  {
+func (t *TCPTransport) handleConn(conn net.Conn) {
 	peer := NewTCPPeer(conn, true)
+	if err := t.HandshakeFun(peer); err != nil {
+		fmt.Println("Handshake failed:", err)
+		conn.Close()
+		return
+	}
+
+	t.mu.Lock()
+	t.peers[conn.RemoteAddr()] = peer
+	t.mu.Unlock()
+
+	msg := &Message{}
+
 	fmt.Printf("New connection from: %+v\n", peer)
+	fmt.Printf("Connections : %+v\n", len(t.peers))
+
+	for {
+		if err := t.Decoder.Decode(conn, msg); err != nil {
+			fmt.Println("Decode error:", err)
+			continue
+		}
+		msg.From = conn.RemoteAddr()
+		fmt.Printf("Received message: %+v\n", msg)
+		fmt.Printf("Received message: %+v\n", string(msg.Payload))
+	}
+
 }

@@ -1,15 +1,20 @@
 package p2p
-import(
+
+import (
 	"testing"
+
 	"github.com/stretchr/testify/assert"
 )
 
-
 func TestTcpTransport(t *testing.T) {
-	transport := NewTCPTransport("localhost:8080")
+	tcpopts := TCPTransportOpts{
+		ListenAddr:   "localhost:8080",
+		HandshakeFun: NOPHandshake,
+	}
+	transport := NewTCPTransport(tcpopts)
 
-	assert.Equal(t, transport.listenAddr,"localhost:8080" )
+	assert.Equal(t, transport.ListenAddr, "localhost:8080")
 
-	assert.Nil(t,transport.ListenAndAccept())
+	assert.Nil(t, transport.ListenAndAccept())
 	select {}
 }
