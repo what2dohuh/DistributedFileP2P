@@ -4,7 +4,7 @@ import (
 	"net"
 )
 
-type Message struct {
+type RPC struct {
 	From    net.Addr
 	Payload []byte
 }

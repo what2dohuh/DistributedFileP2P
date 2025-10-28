@@ -72,19 +72,19 @@ func (t *TCPTransport) handleConn(conn net.Conn) {
 	t.peers[conn.RemoteAddr()] = peer
 	t.mu.Unlock()
 
-	msg := &Message{}
+	rpc := &RPC{}
 
 	fmt.Printf("New connection from: %+v\n", peer)
 	fmt.Printf("Connections : %+v\n", len(t.peers))
 
 	for {
-		if err := t.Decoder.Decode(conn, msg); err != nil {
+		if err := t.Decoder.Decode(conn, rpc); err != nil {
 			fmt.Println("Decode error:", err)
 			continue
 		}
-		msg.From = conn.RemoteAddr()
-		fmt.Printf("Received message: %+v\n", msg)
-		fmt.Printf("Received message: %+v\n", string(msg.Payload))
+		rpc.From = conn.RemoteAddr()
+		fmt.Printf("Received message: %+v\n", rpc)
+		fmt.Printf("Received message: %+v\n", string(rpc.Payload))
 	}
 
 }
